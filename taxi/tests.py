@@ -79,12 +79,15 @@ class FormTests(TestCase):
 
 class ViewTests(TestCase):
 
+    def setUp(self):
+        self.user = Driver.objects.create_user(username="testuser",
+                                               password="password123",
+                                               first_name="John",
+                                               last_name="Doe",
+                                               license_number="ABC1234")
+        self.client.force_login(self.user)
+
     def test_index_view_returns_correct_context(self):
-        user = Driver.objects.create_user(username="testuser",
-                                          password="password123",
-                                          first_name="John",
-                                          last_name="Doe",
-                                          license_number="ABC1234")
         self.client.login(username="testuser",
                           password="password123")
         response = self.client.get(reverse("taxi:index"))
@@ -93,6 +96,7 @@ class ViewTests(TestCase):
         self.assertEqual(response.context["num_drivers"], 1)
 
     def test_create_driver_view_redirects_to_login_when_not_logged_in(self):
+        self.client.logout()
         response = self.client.post(reverse("taxi:driver-create"),
                                     data={"username": "testuser",
                                           "password1": "password123",
@@ -103,11 +107,6 @@ class ViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
     def test_car_list_view_returns_correct_context_when_logged_in(self):
-        user = Driver.objects.create_user(username="testuser",
-                                          password="password123",
-                                          first_name="John",
-                                          last_name="Doe",
-                                          license_number="ABC1234")
         self.client.login(username="testuser", password="password123")
         manufacturer = Manufacturer.objects.create(name="Tesla", country="USA")
         Car.objects.create(model="Model S", manufacturer=manufacturer)
@@ -116,19 +115,15 @@ class ViewTests(TestCase):
         self.assertEqual(len(response.context["object_list"]), 1)
 
     def test_car_detail_view_returns_correct_context_when_logged_in(self):
-        user = Driver.objects.create_user(username="testuser",
-                                          password="password123",
-                                          first_name="John",
-                                          last_name="Doe",
-                                          license_number="ABC1234")
         self.client.login(username="testuser",
                           password="password123")
         manufacturer = Manufacturer.objects.create(name="Tesla",
                                                    country="USA")
         car = Car.objects.create(model="Model S",
                                  manufacturer=manufacturer)
-        response = self.client.get(reverse("taxi:car-detail",
-                                           args=[car.id]))
+        response = self.client.get(reverse(
+            "taxi:car-detail",
+            args=[car.id]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["object"], car)
 
@@ -149,11 +144,6 @@ class ViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
     def test_create_car_view_creates_car_when_logged_in(self):
-        user = Driver.objects.create_user(username="testuser",
-                                          password="password123",
-                                          first_name="John",
-                                          last_name="Doe",
-                                          license_number="ABC1234")
         driver = Driver.objects.create_user(
             username="TestUsername",
             password="TestPassword123@?",
